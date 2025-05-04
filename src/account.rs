@@ -36,6 +36,33 @@ impl Account {
         leverage: &Option<BigDecimal>,
         margin_type: &Option<MarginType>,
     ) -> Result<(), OrderError> {
+        let original_position = self.positions.get(&symbol);
+        let original_side = original_position.map(|p| p.side);
+        let original_quantity = original_position.map(|p| p.quantity.clone()).unwrap_or(BigDecimal::from(0));
+        let original_entry_price = original_position.map(|p| p.entry_price.clone()).unwrap_or(BigDecimal::from(0));
+
+        let new_quantity = if original_side.map_or(true, |s| s == side) {
+            original_quantity.clone() + quantity.clone()
+        } else {
+            if quantity > &original_quantity {
+                quantity.clone() - original_quantity.clone()
+            } else {
+                original_quantity.clone() - quantity.clone()
+            }
+        };
+
+        let new_entry_price = if original_side.map_or(true, |s| s == side) {
+            let total_value = original_quantity.clone() * original_entry_price.clone() 
+                + quantity.clone() * entry_price.clone();
+            total_value / (original_quantity.clone() + quantity.clone())
+        } else {
+            if quantity > &original_quantity {
+                entry_price.clone()
+            } else {
+                original_entry_price
+            }
+        };
+
         let position = self.positions.entry(symbol.clone()).or_insert(Position { 
             user_id: self.user_id,
             symbol,
@@ -50,34 +77,8 @@ impl Account {
             updated_at: chrono::Utc::now(),
         });
 
-        /**
-         * update position quantity and entry price
-         */
-        let new_quantity = if position.side == side {
-            position.quantity.clone() + quantity.clone()
-        } else {
-            if quantity > &position.quantity {
-                position.side = side;
-                quantity.clone() - position.quantity.clone()
-            } else {
-                position.quantity.clone() - quantity.clone()
-            }
-        };
-
-        let new_entry_price = if position.side == side {
-            let total_value = position.quantity.clone() * position.entry_price.clone() 
-                + quantity.clone() * entry_price.clone();
-            total_value / (position.quantity.clone() + quantity.clone())
-        } else {
-            if quantity > &position.quantity {
-                entry_price.clone()
-            } else {
-                position.entry_price.clone()
-            }
-        };
-
         position.quantity = new_quantity;
-        position.entry_price = new_entry_price.clone();
+        position.entry_price = new_entry_price;
         position.updated_at = chrono::Utc::now();
 
         /**
