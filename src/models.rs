@@ -13,6 +13,24 @@ pub enum Side {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum PositionSide {
+    Long,
+    Short
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum PositionType {
+    Spot,    
+    Margin,  
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum MarginType {
+    Isolated,
+    Cross
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum OrderType {
     Limit,
     Market,
@@ -72,12 +90,14 @@ pub struct Trade {
 pub struct Position {
     pub user_id: Uuid,
     pub symbol: String,
-    pub side: Side,
+    pub side: Side,           
+    pub position_type: PositionType,
     pub quantity: BigDecimal,
     pub entry_price: BigDecimal,
-    pub leverage: BigDecimal,
-    pub liquidation_price: BigDecimal,
-    pub margin: BigDecimal,
+    pub leverage: Option<BigDecimal>,
+    pub liquidation_price: Option<BigDecimal>,
+    pub margin: Option<BigDecimal>,    
+    pub margin_type: Option<MarginType>, 
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
